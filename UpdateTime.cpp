@@ -7,20 +7,12 @@ class UpdateTime : public VariableTimedAction {
       this->currentTime = currentTime;
     }
 
-    int getCount(){
-      return count;
-    }
-
   private:
-    int count = 0;
     time_t *currentTime;
 
     unsigned long run(){
-      count++;
-
       *currentTime = 42069; //Get time from the network
 
       return 0;
     }
 };
-

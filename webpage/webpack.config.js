@@ -14,7 +14,11 @@ module.exports = {
 				test: /\.js$/,
 				exclude: /node_modules/,
 				use: 'babel-loader'
-			}
+			},
+			{
+	          test: /\.jpe?g$|\.ico$|\.gif$|\.png$|\.svg$|\.woff$|\.ttf$|\.wav$|\.mp3$/,
+	          use: 'file-loader?name=[name].[ext]'  // <-- retain original file name
+	      	}
 		]
 	},
 	output: {

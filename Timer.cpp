@@ -1,39 +1,32 @@
-#include  <LiquidCrystal_I2C.h>
 #include <time.h>
 #include <VariableTimedAction.h>
 
+#include "LCD.h"
+
 class Timer : public VariableTimedAction {
   public:
-    Timer(time_t *currentTime, LiquidCrystal_I2C *lcd){
+    Timer(time_t *currentTime){
       this->currentTime = currentTime;
-      this->lcd = lcd;
-    }
-  
-    int getCount(){
-      return count;
     }
   
   private:
-    int count = 0;
     time_t *currentTime;
-    LiquidCrystal_I2C *lcd;
 
     unsigned long run(){
-      count++;
       int hour = (*currentTime/(60*60))%24-4;
       int minute = (*currentTime/60)%60;
       int sec = *currentTime%60;
-      lcd->clear();
-      lcd->write('0'+hour/10);
-      lcd->write('0'+hour%10);
-      lcd->write(':');
-      lcd->write('0'+minute/10);
-      lcd->write('0'+minute%10);
-      lcd->write(':');
-      lcd->write('0'+sec/10);
-      lcd->write('0'+sec%10);
+      LCD::clear();
+      LCD::write('0'+hour/10);
+      LCD::write('0'+hour%10);
+      LCD::write(':');
+      LCD::write('0'+minute/10);
+      LCD::write('0'+minute%10);
+      LCD::write(':');
+      LCD::write('0'+sec/10);
+      LCD::write('0'+sec%10);
+      LCD::update();
       (*currentTime)++;
       return 0;
     }
 };
-
