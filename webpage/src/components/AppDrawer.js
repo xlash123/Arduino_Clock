@@ -3,12 +3,11 @@ import { withStyles } from '@material-ui/core/styles';
 import { Drawer, List, ListItem, ListItemText, IconButton, Divider } from '@material-ui/core'
 import { ChevronLeft } from '@material-ui/icons';
 
+import Alarms from './Alarms'
+
 const drawerWidth = 240;
 
 const styles = theme => ({
-  root: {
-    display: 'flex',
-  },
   drawer: {
     width: drawerWidth,
     flexShrink: 0,
@@ -20,8 +19,9 @@ const styles = theme => ({
     display: 'flex',
     alignItems: 'center',
     padding: '0 8px',
+    ...theme.mixins.toolbar,
     justifyContent: 'flex-end',
-  }
+  },
 });
 
 class AppDrawer extends React.Component{
@@ -43,15 +43,18 @@ class AppDrawer extends React.Component{
     				</IconButton>
     			</div>
     			<List>
-    				<ListItem button key='test'>
-    					<ListItemText primary='test' />
+    				<ListItem button key='Alarms' onClick={() => this.props.setComponent(Alarms)}>
+    					<ListItemText primary='Alarms' />
     				</ListItem>
+                    <ListItem button key='Notes'>
+                      <ListItemText primary='Notes' />
+                    </ListItem>
     			</List>
-    			<Divider />
+                <Divider />
     		</Drawer>
 		)
 	}
 
 }
 
-export default withStyles(styles)(AppDrawer)
+export default withStyles(styles, {withTheme: true})(AppDrawer)

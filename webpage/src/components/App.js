@@ -10,10 +10,8 @@ const drawerWidth = 240;
 
 const styles = theme => ({
   root: {
-    display: 'flex'
-  },
-  grow: {
-    flexGrow: 1,
+    display: 'flex',
+    flexWrap: 'wrap'
   },
   hide: {
     display: 'none',
@@ -49,7 +47,18 @@ const styles = theme => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
     marginLeft: 0,
-  }
+  },
+  drawerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0 8px',
+    ...theme.mixins.toolbar,
+    justifyContent: 'flex-start',
+  },
+  drawer: {
+    width: drawerWidth,
+    flexShrink: 0,
+  },
 });
 
 class App extends React.Component{
@@ -57,29 +66,33 @@ class App extends React.Component{
 	constructor(props){
 		super(props)
 
-		this.state = {drawerOpen: false}
+		this.state = {drawerOpen: false, currentPage: undefined}
 	}
 
 	render(){
 		const {classes} = this.props;
 		const {drawerOpen} = this.state;
 
+    const Page = this.state.currentPage;
+
 		return (
 			<div className={classes.root}>
-				<CssBaseline />
+        <CssBaseline />
 				<AppBar position='static' className={classNames(classes.appBar, {[classes.appBarShift]: drawerOpen})}>
 					<Toolbar disableGutters={!drawerOpen}>
 						<IconButton className={classNames(classes.menuButton, drawerOpen && classes.hide)} color="inherit" aria-label="Menu" onClick={() => this.setState({drawerOpen: true})}>
-			              <Menu />
-			            </IconButton>
-			            <Typography variant='h6' color='inherit' className={classes.grow}>
-			            	Configuration
-			            </Typography>
+              <Menu />
+            </IconButton>
+            <Typography variant='h6' color='inherit' nowrap='true'>
+            	Arduino Clock Webconfig
+            </Typography>
 					</Toolbar>
 				</AppBar>
-				<AppDrawer open={drawerOpen} handleClose={() => this.setState({drawerOpen: false})}/>
+				<AppDrawer className={classes.drawer} open={drawerOpen} handleClose={() => this.setState({drawerOpen: false})} setComponent={(Component) => this.setState({currentPage: Component})} />
 				<main className={classNames(classes.content, {[classes.contentShift]: drawerOpen})}>
-					
+          <div className={classes.drawerHeader}>
+            {Page ? <Page /> : <Typography paragraph>No page here</Typography>}
+          </div>
 				</main>
 			</div>
 		);
@@ -87,4 +100,4 @@ class App extends React.Component{
 
 }
 
-export default withStyles(styles)(App)
+export default withStyles(styles, {withTheme: true})(App)
