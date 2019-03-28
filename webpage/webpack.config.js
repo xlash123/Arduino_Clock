@@ -1,16 +1,26 @@
 const path = require('path');
-
 var HTMLWebpackPlugin = require('html-webpack-plugin');
 var CompressionPlugin = require('compression-webpack-plugin');
-var HTMLWebpackPluginConfig = new HTMLWebpackPlugin({
-	template: __dirname + '/src/index.html',
-	filename: 'index.html',
-	inject: 'body'
-});
-
-
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = env => {
+	const isDev = env.NODE_ENV === 'development';
+
+	var HTMLWebpackPluginConfig = new HTMLWebpackPlugin({
+		template: __dirname + '/src/index.html',
+		filename: isDev ? 'index.html' : 'index.htm',
+		inject: 'body'
+	});
+
+	var plugins = [HTMLWebpackPluginConfig];
+	if(!isDev){
+		plugins.push(new CompressionPlugin({
+				test: /\.js(\?.*)?$/i,
+				exclude: /node_modules/,
+				filename: '[path]'
+			}));
+	}
+
 	console.log("Node ENV: " + env.NODE_ENV);
 	return {
 		mode:  env.NODE_ENV,
@@ -32,13 +42,19 @@ module.exports = env => {
 			filename: 'index.js',
 			path: __dirname + '/build'
 		},
-		plugins: [
-			HTMLWebpackPluginConfig,
-			new CompressionPlugin({
-				test: /\.js(\?.*)?$/i,
-				exclude: /node_modules/,
-				filename: '[path]'
-			}),
-		]
+		plugins: plugins,
+		optimization: {
+			minimizer: [
+				new TerserPlugin({
+					test: /\.js(\?.*)?$/i,
+					exclude: /node_modules/,
+					terserOptions: {
+						output: {
+							comments: false
+						}
+					}
+				})
+			]
+		}
 	}
 };

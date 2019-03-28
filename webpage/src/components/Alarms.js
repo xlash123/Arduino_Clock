@@ -1,7 +1,8 @@
 import React from 'react'
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, ExpansionPanel, ExpansionPanelSummary, ExpansionPanelDetails } from '@material-ui/core'
+import { Typography, ExpansionPanel, ExpansionPanelSummary, ExpansionPanelDetails, Button } from '@material-ui/core'
 import { ExpandMore } from '@material-ui/icons'
+import axios from 'axios'
 
 class Alarms extends React.Component {
 
@@ -17,6 +18,7 @@ class Alarms extends React.Component {
 					</ExpansionPanelSummary>
 					<ExpansionPanelDetails>
 						<Typography>Enter time:</Typography>
+						<Button onClick={() => axios.post('/', {test: 'sample'})}>Sample request</Button>
 					</ExpansionPanelDetails>
 				</ExpansionPanel>
 			</div>
