@@ -7,6 +7,8 @@
 class Timer : public VariableTimedAction {
   public:
     Timer(time_t *currentTime){
+      LCD::clearRow(1);
+      LCD::writeString("Starting timer...", 1);
       this->currentTime = currentTime;
       Udp.begin(8888);
     }
@@ -17,16 +19,16 @@ class Timer : public VariableTimedAction {
     EthernetUDP Udp;
 
     unsigned long run(){
-      if(*currentTime - lastUpdate >= 2*60){
+      if(*currentTime - lastUpdate >= 60*60){
         lastUpdate = getTime();
         if(lastUpdate > 0){
           *currentTime = lastUpdate;
-        }else lastUpdate = *currentTime - (2*60 - 10);
+        }else lastUpdate = *currentTime - (60*60 - 10);
       }
       int hour = (*currentTime/(60*60))%24-4;
       int minute = (*currentTime/60)%60;
       int sec = *currentTime%60;
-      LCD::clear();
+      LCD::setCursor(0);
       LCD::write('0'+hour/10);
       LCD::write('0'+hour%10);
       LCD::write(':');

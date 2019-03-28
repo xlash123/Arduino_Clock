@@ -13,14 +13,19 @@ class LCD{
 
     static LiquidCrystal_I2C *lcd;
     static char lcdDisp[ROWS*COLS+3];
+    static int cursor;
 
     LCD(LiquidCrystal_I2C &lcd);
 
     static void clear();
 
-    static void writeString(const char *str);
+    static void writeString(const char *str, int row=0, int col=0);
 
     static void write(char c);
+
+    static void clearRow(int row);
+
+    static void setCursor(int pos);
 
     static void appendString(const char *str);
 

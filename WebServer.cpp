@@ -15,6 +15,8 @@ class WebServer : public VariableTimedAction {
     WebServer(){
       byte mac[] = {0x8E, 0x5D, 0x7D, 0x93, 0x23, 0x13};
       Serial.println("Init Ethernet w/ DHCP");
+      LCD::clearRow(1);
+      LCD::writeString("Getting IP...", 1);
       if(Ethernet.begin(mac) == 0){
         Serial.println("No DHCP");
         if(Ethernet.hardwareStatus() == EthernetNoHardware){
@@ -24,71 +26,45 @@ class WebServer : public VariableTimedAction {
         }
       }
       ip = Ethernet.localIP();
-      Serial.print("IP: ");
-      Serial.println(ip);
+      String ipS = "IP: " + getIpString(ip);
+      Serial.println(ipS);
+      LCD::writeString(ipS.c_str(), 3);
       Serial.println("Webserver initialized");
-      delay(2000);
     }
 
   private:
+
+    int count;
+
+    String getIpString(IPAddress ip){
+      
+      return String(ip[0]) + String(".") + String(ip[1]) + String(".") + String(ip[2]) + String(".") + String(ip[3]);
+    }
   
     unsigned long run(){
+      if(Ethernet.maintain() && count%15 == 0){
+        ip = Ethernet.localIP();
+        LCD::clearRow(1);
+        String ipS = "IP: " + getIpString(ip);
+        LCD::writeString(ipS.c_str(), 3);
+        count = 0;
+      }
       EthernetClient client = server.available();
       if(client){
         Serial.println("New client:\n");
+        LCD::clearRow(1);
+        LCD::writeString("Serving HTTP...", 1);
         // an http request ends with a blank line
         bool currentLineIsBlank;
         String HTTP_req = "";
         while (client.connected()) {
-          if (client.available()) {
+          bool respond = false;
+          if (client.available() && !respond) {
             char c = client.read();
             Serial.write(c);
-            if(HTTP_req.length() < 80) HTTP_req += c;
+            HTTP_req += c;
             if (c == '\n' && currentLineIsBlank) {
-              Serial.println("\nNow responding:");
-              //Write response
-              int iGet = HTTP_req.indexOf("GET");
-              if(iGet >= 0){
-                Serial.println("GET request");
-                String sdFile = HTTP_req.substring(iGet+4, HTTP_req.indexOf(" ", iGet+4));
-
-                if(sdFile == "/") sdFile = "/index.htm";
-                String fileExtension = sdFile.substring(sdFile.lastIndexOf(".")+1);
-
-                Serial.println(sdFile);
-                Serial.println(fileExtension);
-
-                bool encode = false;
-                client.println("HTTP/1.1 200 OK");
-                String mime = "Content-Type: ";
-                if(fileExtension == "htm"){
-                  mime += "text/html";
-                }else if(fileExtension == "js"){
-                  mime += "text/javascript";
-                  encode = true;
-                }else mime += "text/text";
-                Serial.print("Mime: ");
-                Serial.println(mime);
-                client.println(mime);
-                if(encode) client.println("Content-Encoding: gzip");
-                client.println("Connection: Close");
-                client.println();
-                File webpage = SD.open(sdFile);
-                if(webpage){
-                  Serial.print("Sending data to client: ");
-                  Serial.println(webpage.available());
-                  int i = 0;
-                  while (webpage.available()) {
-                    char cc = webpage.read();
-                    client.write(cc);
-                  }
-                  Serial.println("Data sent");
-                  webpage.close();
-                }
-              }
-              Serial.println("\nResponse terminated");
-              client.flush();
-              client.stop();
+              
             }
             if (c == '\n') {
               // you're starting a new line
@@ -98,12 +74,62 @@ class WebServer : public VariableTimedAction {
               currentLineIsBlank = false;
             }
           }
+          if(!client.available()) respond = true;
+          if(respond){
+            Serial.println("\nNow responding:");
+            //Write response
+            int iGet = HTTP_req.indexOf("GET");
+            if(iGet >= 0){
+              Serial.println("GET request");
+              String sdFile = HTTP_req.substring(iGet+4, HTTP_req.indexOf(" ", iGet+4));
+  
+              if(sdFile == "/") sdFile = "/index.htm";
+              String fileExtension = sdFile.substring(sdFile.lastIndexOf(".")+1);
+  
+              Serial.println(sdFile);
+              Serial.println(fileExtension);
+  
+              bool encode = false;
+              client.println("HTTP/1.1 200 OK");
+              String mime = "Content-Type: ";
+              if(fileExtension == "htm"){
+                mime += "text/html";
+              }else if(fileExtension == "js"){
+                mime += "text/javascript";
+                encode = true;
+              }else if(fileExtension == "ico"){
+                mime += "image/x-icon";
+              }else mime += "text/text";
+              Serial.print("Mime: ");
+              Serial.println(mime);
+              client.println(mime);
+              if(encode) client.println("Content-Encoding: gzip");
+              client.println("Connection: Close");
+              client.println();
+              File webpage = SD.open(sdFile);
+              if(webpage){
+                Serial.print("Sending data to client: ");
+                Serial.println(webpage.available());
+                int i = 0;
+                while (webpage.available() && client.connected()) {
+                  char cc = webpage.read();
+                  client.write(cc);
+                }
+                if(client.connected()) Serial.println("Data sent");
+                else Serial.println("Client disconnected");
+                webpage.close();
+              }
+            }
+            Serial.println("\nResponse terminated");
+            client.flush();
+            client.stop();
+            respond = false;
+          }
         }
-
-        delay(1);
+        LCD::clearRow(1);
         client.stop();
       }
-      
+      count++;
       return 0;
     }
   

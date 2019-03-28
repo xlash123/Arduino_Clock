@@ -19,12 +19,13 @@ void setup()
   Serial.println("Starting...");
   LiquidCrystal_I2C lcdRaw(0x27,ROWS,COLS);  // set the LCD address to 0x27 for a 16 chars and 2 line display
   LCD lcd(lcdRaw);
+  LCD::writeString("Initializing...");
   pinMode(53, OUTPUT);
   pinMode(4, OUTPUT);
   digitalWrite(53, HIGH);
   bool error = false;
   if(!SD.begin(4)){
-    LCD::writeString("SD not accessible");
+    LCD::writeString("Error:\nSD not accessible");
     error = true;
   }
   while(error){
@@ -32,8 +33,9 @@ void setup()
   }
   WebServer webServer;
   Timer timer(&currentTime);
-  delay(1);
   Serial.println("No errors");
+  LCD::clearRow(0);
+  LCD::clearRow(1);
   timer.start(1000);
   webServer.start(1000);
 }

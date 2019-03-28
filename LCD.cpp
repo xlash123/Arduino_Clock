@@ -2,6 +2,7 @@
 
 LiquidCrystal_I2C * LCD::lcd;
 char LCD::lcdDisp[ROWS*COLS+3];
+int LCD::cursor;
 
 LCD::LCD(LiquidCrystal_I2C &lcd){
   LCD::lcd = &lcd;
@@ -12,14 +13,15 @@ LCD::LCD(LiquidCrystal_I2C &lcd){
 
 void LCD::clear(){
   lcd->clear();
+  setCursor(0);
   for(int i=0; i<LENGTH+1; i++){
     lcdDisp[i] = '\0';
   }
 }
 
-void LCD::writeString(const char *str){
-  clear();
+void LCD::writeString(const char *str, int row, int col){
   int len = strlen(str);
+  setCursor(row*COLS + col%COLS);
   for(int i=0; i<len; i++){
     write(str[i]);
   }
@@ -27,16 +29,17 @@ void LCD::writeString(const char *str){
 }
 
 void LCD::write(char c){
-  int len = strlen(lcdDisp);
-  if(len >= LENGTH) return;
+  if(cursor >= LENGTH) return;
   if(c != '\n'){
-    lcdDisp[len] = c;
-    lcdDisp[len+1] = '\0';
+    lcdDisp[cursor] = c;
+    cursor++;
   }else{
-    for(int i=len; i<LENGTH && i<=(len%COLS+len*ROWS); i++){
-      lcdDisp[i] = '\0';
-    }
+    cursor = cursor/COLS+COLS;
   }
+}
+
+void LCD::setCursor(int pos){
+  cursor = pos;
 }
 
 void LCD::appendString(const char *str){
@@ -45,6 +48,13 @@ void LCD::appendString(const char *str){
     write(str[i]);
   }
   update();
+}
+
+void LCD::clearRow(int row){
+  int temp = cursor;
+  cursor = row*COLS;
+  for(int i=0; i<COLS; i++) write(' ');
+  cursor = temp;
 }
 
 void LCD::update(){
