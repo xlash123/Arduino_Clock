@@ -1,6 +1,7 @@
 const path = require('path');
 
 var HTMLWebpackPlugin = require('html-webpack-plugin');
+var CompressionPlugin = require('compression-webpack-plugin');
 var HTMLWebpackPluginConfig = new HTMLWebpackPlugin({
 	template: __dirname + '/src/index.html',
 	filename: 'index.html',
@@ -28,9 +29,16 @@ module.exports = env => {
 			]
 		},
 		output: {
-			filename: 'compiled.js',
+			filename: 'index.js',
 			path: __dirname + '/build'
 		},
-		plugins: [HTMLWebpackPluginConfig]
+		plugins: [
+			HTMLWebpackPluginConfig,
+			new CompressionPlugin({
+				test: /\.js(\?.*)?$/i,
+				exclude: /node_modules/,
+				filename: '[path]'
+			}),
+		]
 	}
 };
