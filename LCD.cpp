@@ -50,7 +50,10 @@ void LCD::appendString(const char *str){
 void LCD::update(){
   for(int r=0; r<ROWS;){
     for(int c=0; c<COLS; c++){
-      lcd->write(lcdDisp[r*COLS + c%COLS]);
+      int i = r*COLS + c%COLS;
+      if(lcdDisp[i] == '\0'){
+        lcd->write(' ');
+      }else lcd->write(lcdDisp[i]);
     }
     if(r==0) r=2;
     else if(r==2) r=1;
