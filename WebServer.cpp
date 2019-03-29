@@ -54,8 +54,6 @@ class WebServer : public VariableTimedAction {
         Serial.println("New client:\n");
         LCD::clearRow(1);
         LCD::writeString("Serving HTTP...", 1);
-        // an http request ends with a blank line
-        bool currentLineIsBlank;
         String HTTP_req = "";
         while (client.connected()) {
           bool respond = false;
@@ -63,16 +61,6 @@ class WebServer : public VariableTimedAction {
             char c = client.read();
             Serial.write(c);
             HTTP_req += c;
-            if (c == '\n' && currentLineIsBlank) {
-              
-            }
-            if (c == '\n') {
-              // you're starting a new line
-              currentLineIsBlank = true;
-            } else if (c != '\r') {
-              // you've gotten a character on the current line
-              currentLineIsBlank = false;
-            }
           }
           if(!client.available()) respond = true;
           if(respond){
@@ -109,8 +97,8 @@ class WebServer : public VariableTimedAction {
               File webpage = SD.open(sdFile);
               if(webpage){
                 Serial.print("Sending data to client: ");
-                Serial.println(webpage.available());
-                int i = 0;
+                unsigned long size = webpage.size();
+                Serial.println(size);
                 while (webpage.available() && client.connected()) {
                   char cc = webpage.read();
                   client.write(cc);
@@ -119,6 +107,8 @@ class WebServer : public VariableTimedAction {
                 else Serial.println("Client disconnected");
                 webpage.close();
               }
+            }else if(HTTP_req.indexOf("POST") >= 0){
+              Serial.println("POST request");
             }
             Serial.println("\nResponse terminated");
             client.flush();

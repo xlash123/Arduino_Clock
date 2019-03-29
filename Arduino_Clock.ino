@@ -2,6 +2,7 @@
 #include <VariableTimedAction.h>
 #include <SPI.h>
 #include <SD.h>
+//#include <TMRpcm.h>
 
 #include "LCD.h"
 #include "Timer.cpp"
@@ -10,6 +11,7 @@
 #include <time.h>
 
 time_t currentTime = 1553116366;
+//TMRpcm audio;
 
 char temp = 'A';
 
@@ -38,6 +40,9 @@ void setup()
   LCD::clearRow(1);
   timer.start(1000);
   webServer.start(1000);
+//  audio.speakerPin = 11;
+//  audio.setVolume(5);
+//  audio.play("test.wav");
 }
 
 void loop()
