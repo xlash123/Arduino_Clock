@@ -26,9 +26,10 @@ class WebServer : public VariableTimedAction {
         }
       }
       ip = Ethernet.localIP();
-      String ipS = "IP: " + getIpString(ip);
+      char *ipS = getIpString(ip);
       Serial.println(ipS);
-      LCD::writeString(ipS.c_str(), 3);
+      LCD::writeString(ipS, 3);
+      free(ipS);
       Serial.println("Webserver initialized");
     }
 
@@ -36,17 +37,19 @@ class WebServer : public VariableTimedAction {
 
     int count;
 
-    String getIpString(IPAddress ip){
-      
-      return String(ip[0]) + String(".") + String(ip[1]) + String(".") + String(ip[2]) + String(".") + String(ip[3]);
+    char *getIpString(IPAddress ip){
+      char *ret = malloc(sizeof(char) * (4*3+4+3));
+      sprintf(ret, "IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+      return ret;
     }
   
     unsigned long run(){
       if(Ethernet.maintain() && count%15 == 0){
         ip = Ethernet.localIP();
         LCD::clearRow(1);
-        String ipS = "IP: " + getIpString(ip);
-        LCD::writeString(ipS.c_str(), 3);
+        char *ipS = getIpString(ip);
+        LCD::writeString(ipS, 3);
+        free(ipS);
         count = 0;
       }
       EthernetClient client = server.available();
@@ -54,40 +57,55 @@ class WebServer : public VariableTimedAction {
         Serial.println("New client:\n");
         LCD::clearRow(1);
         LCD::writeString("Serving HTTP...", 1);
-        String HTTP_req = "";
+        char *HTTP_req = calloc(client.available()+2, sizeof(char));
+        int len = 0;
         while (client.connected()) {
           bool respond = false;
           if (client.available() && !respond) {
             char c = client.read();
             Serial.write(c);
-            HTTP_req += c;
+            HTTP_req[len] = c;
+            len++;
           }
           if(!client.available()) respond = true;
           if(respond){
             Serial.println("\nNow responding:");
             //Write response
-            int iGet = HTTP_req.indexOf("GET");
-            if(iGet >= 0){
+            char *iGet = strstr(HTTP_req, "GET");
+            char *iPost = strstr(HTTP_req, "POST");
+            if(iGet){
               Serial.println("GET request");
-              String sdFile = HTTP_req.substring(iGet+4, HTTP_req.indexOf(" ", iGet+4));
-  
-              if(sdFile == "/") sdFile = "/index.htm";
-              String fileExtension = sdFile.substring(sdFile.lastIndexOf(".")+1);
+              iGet += 4;
+              char *endFile = strstr(iGet, " ");
+              char *sdFile = calloc(endFile-iGet+1, sizeof(char));
+              strncpy(sdFile, iGet, endFile-iGet);
+              sdFile[endFile-iGet+1] = '\0';
+
+              if(strcmp(sdFile, "/") == 0){
+                realloc(sdFile, sizeof(char)*11);
+                strcpy(sdFile, "/index.htm");
+              }
+              char *iFileExt;
+              for(iFileExt=endFile; iFileExt>iGet && *iFileExt=='.'; iFileExt--);
+              char *fileExtension = malloc(sizeof(char)*(endFile-iFileExt+1));
+              strncpy(fileExtension, iFileExt, endFile-iFileExt);
+              fileExtension[endFile-iFileExt+1] = '\0';
   
               Serial.println(sdFile);
               Serial.println(fileExtension);
   
               bool encode = false;
               client.println("HTTP/1.1 200 OK");
-              String mime = "Content-Type: ";
+              char *mime = malloc(sizeof(char)*40);
+              strcpy(mime, "Content-Type: ");
               if(fileExtension == "htm"){
-                mime += "text/html";
+                strcat(mime, "text/html");
               }else if(fileExtension == "js"){
-                mime += "text/javascript";
+                strcat(mime, "text/javascript");
                 encode = true;
               }else if(fileExtension == "ico"){
-                mime += "image/x-icon";
-              }else mime += "text/text";
+                strcat(mime, "image/x-icon");
+              }else strcat(mime, "text/text");
               Serial.print("Mime: ");
               Serial.println(mime);
               client.println(mime);
@@ -107,7 +125,7 @@ class WebServer : public VariableTimedAction {
                 else Serial.println("Client disconnected");
                 webpage.close();
               }
-            }else if(HTTP_req.indexOf("POST") >= 0){
+            }else if(iPost){
               Serial.println("POST request");
             }
             Serial.println("\nResponse terminated");
