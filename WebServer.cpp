@@ -38,7 +38,7 @@ class WebServer : public VariableTimedAction {
     int count;
 
     char *getIpString(IPAddress ip){
-      char *ret = malloc(sizeof(char) * (4*3+4+3));
+      char *ret = (char *) malloc(sizeof(char) * (4*3+4+3));
       sprintf(ret, "IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
       return ret;
     }
@@ -57,19 +57,23 @@ class WebServer : public VariableTimedAction {
         Serial.println("New client:\n");
         LCD::clearRow(1);
         LCD::writeString("Serving HTTP...", 1);
-        char *HTTP_req = calloc(client.available()+2, sizeof(char));
+        int maxLen = client.available()+8;
+        Serial.print("Max: ");
+        Serial.println(maxLen);
+        char *HTTP_req = (char *) malloc(maxLen*sizeof(char));
+        HTTP_req[0] = '\0';
         int len = 0;
         while (client.connected()) {
           bool respond = false;
           if (client.available() && !respond) {
             char c = client.read();
-            Serial.write(c);
             HTTP_req[len] = c;
+            HTTP_req[len+1] = '\0';
             len++;
           }
           if(!client.available()) respond = true;
           if(respond){
-            Serial.println("\nNow responding:");
+            Serial.println("Now responding:");
             //Write response
             char *iGet = strstr(HTTP_req, "GET");
             char *iPost = strstr(HTTP_req, "POST");
@@ -77,33 +81,35 @@ class WebServer : public VariableTimedAction {
               Serial.println("GET request");
               iGet += 4;
               char *endFile = strstr(iGet, " ");
-              char *sdFile = calloc(endFile-iGet+1, sizeof(char));
-              strncpy(sdFile, iGet, endFile-iGet);
-              sdFile[endFile-iGet+1] = '\0';
+              int fileLen = endFile-iGet;
+              char *sdFile = (char *) malloc((fileLen+1)*sizeof(char));
+              sdFile[0] = '\0';
+              strncpy(sdFile, iGet, fileLen);
+              sdFile[fileLen] = '\0';
 
               if(strcmp(sdFile, "/") == 0){
-                realloc(sdFile, sizeof(char)*11);
+                realloc(sdFile, sizeof(char)*15);
                 strcpy(sdFile, "/index.htm");
               }
-              char *iFileExt;
-              for(iFileExt=endFile; iFileExt>iGet && *iFileExt=='.'; iFileExt--);
-              char *fileExtension = malloc(sizeof(char)*(endFile-iFileExt+1));
-              strncpy(fileExtension, iFileExt, endFile-iFileExt);
-              fileExtension[endFile-iFileExt+1] = '\0';
-  
+
+              Serial.print("File: ");
               Serial.println(sdFile);
+
+              char *fileExtension = strrchr(sdFile, '.')+1;
+
+              Serial.print("File Extension: ");
               Serial.println(fileExtension);
   
               bool encode = false;
               client.println("HTTP/1.1 200 OK");
-              char *mime = malloc(sizeof(char)*40);
+              char *mime = (char *) malloc(sizeof(char)*40);
               strcpy(mime, "Content-Type: ");
-              if(fileExtension == "htm"){
+              if(strcmp(fileExtension, "htm")==0){
                 strcat(mime, "text/html");
-              }else if(fileExtension == "js"){
+              }else if(strcmp(fileExtension, "js")==0){
                 strcat(mime, "text/javascript");
                 encode = true;
-              }else if(fileExtension == "ico"){
+              }else if(strcmp(fileExtension, "ico")==0){
                 strcat(mime, "image/x-icon");
               }else strcat(mime, "text/text");
               Serial.print("Mime: ");
