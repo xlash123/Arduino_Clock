@@ -3,9 +3,13 @@ import { withStyles } from '@material-ui/core/styles';
 import { Drawer, List, ListItem, ListItemText, IconButton, Divider } from '@material-ui/core'
 import { ChevronLeft } from '@material-ui/icons';
 
-import Alarms from './Alarms'
-
 const drawerWidth = 240;
+
+const loadComponent = (comp, cb) => {
+    import('./' + comp).then((Component) => {
+        cb(Component.default);
+    });
+}
 
 const styles = theme => ({
   drawer: {
@@ -28,6 +32,7 @@ class AppDrawer extends React.Component{
 
 	render(){
 		const { classes, theme } = this.props;
+        const pages = ['Alarms', 'Notes'];
 
     	return (
     		<Drawer
@@ -43,12 +48,13 @@ class AppDrawer extends React.Component{
     				</IconButton>
     			</div>
     			<List>
-    				<ListItem button key='Alarms' onClick={() => this.props.setComponent(Alarms)}>
-    					<ListItemText primary='Alarms' />
-    				</ListItem>
-                    <ListItem button key='Notes'>
-                      <ListItemText primary='Notes' />
-                    </ListItem>
+                    {
+                        pages.map((page, i) => {
+                            return <ListItem button key={i} onClick={() => loadComponent(page, this.props.setComponent)}>
+                                <ListItemText primary={page} />
+                            </ListItem>
+                        })
+                    }
     			</List>
                 <Divider />
     		</Drawer>

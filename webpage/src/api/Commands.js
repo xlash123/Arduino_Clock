@@ -13,6 +13,6 @@ export newalarm = function(name, message, time, repeat, skipWeek, skipInterval, 
 		rep = rep | (1 << repeat[i]);
 	}
 	if(skipWeek) rep = rep | (1 << 8);
-	return combine('newalarm', message, time.getHours()*60*60 + time.getMinutes()*60 + time.getSeconds(), 
+	return combine('newalarm', name, message, time.getHours()*60*60 + time.getMinutes()*60 + time.getSeconds(), 
 		rep, skipInterval, sound, persistent);
 }
