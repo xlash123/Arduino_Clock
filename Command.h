@@ -1,13 +1,20 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include "Alarms.h"
+#include <string.h>
+
+#define COM_SIZE 1
+
 class Command{
   public:
-    char name[20];
 
-    Command(const char *name);
+    static const char *commands[];
+    static bool (*funcs[])(const char**, int);
 
-    bool run(const char **args, int num);
+    static bool run(const char *name, const char **args, int n);
+
+    static bool newalarm(const char **args, int n);
 
 };
 

@@ -1,10 +1,12 @@
 #include <VariableTimedAction.h>
 #include <Ethernet.h>
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 #include <string.h>
 #include <Time.h>
 #include <Timezone.h>
+#include <TMRpcm.h>
+#include <MemoryFree.h>
 
 #include "LCD.h"
 
@@ -14,17 +16,17 @@ class WebServer : public VariableTimedAction {
     EthernetServer server = EthernetServer(80);
     IPAddress ip;
 
-    WebServer(Timezone *zone){
+    WebServer(Timezone *zone, TMRpcm *audio){
       byte mac[] = {0x8E, 0x5D, 0x7D, 0x93, 0x23, 0x13};
-      Serial.println("Init Ethernet w/ DHCP");
+      Serial.println(F("Init Ethernet w/ DHCP"));
       LCD::clearRow(1);
       LCD::writeString("Getting IP...", 1);
       if(Ethernet.begin(mac) == 0){
-        Serial.println("No DHCP");
+        Serial.println(F("No DHCP"));
         if(Ethernet.hardwareStatus() == EthernetNoHardware){
-          Serial.println("No shield found");
+          Serial.println(F("No shield found"));
         }else if(Ethernet.linkStatus() == LinkOFF){
-          Serial.println("Ethernet is unplugged");
+          Serial.println(F("Ethernet is unplugged"));
         }
       }
       ip = Ethernet.localIP();
@@ -33,13 +35,16 @@ class WebServer : public VariableTimedAction {
       LCD::writeString(ipS, 3);
       free(ipS);
       this->zone = zone;
-      Serial.println("Webserver initialized");
+      this->audio = audio;
+      Serial.println(F("Webserver initialized"));
     }
 
   private:
 
     int count;
     Timezone *zone;
+    TMRpcm *audio;
+    
 
     char *getIpString(IPAddress ip){
       char *ret = (char *) malloc(sizeof(char) * (4*3+4+3));
@@ -58,7 +63,9 @@ class WebServer : public VariableTimedAction {
       }
       EthernetClient client = server.available();
       if(client){
-        Serial.println("New client:\n");
+        Serial.println(F("New client:\n"));
+        Serial.print(F("Free memory:"));
+        Serial.println(freeMemory());
         LCD::clearRow(1);
         LCD::writeString("Serving HTTP...", 1);
         int maxLen = client.available()+8;
@@ -78,12 +85,13 @@ class WebServer : public VariableTimedAction {
           }
           if(!client.available()) respond = true;
           if(respond){
-            Serial.println("\nNow responding:");
+            setPlay(false);
+            Serial.println(F("\nNow responding:"));
             //Write response
             char *iGet = strstr(HTTP_req, "GET");
             char *iPost = strstr(HTTP_req, "POST");
             if(iGet){
-              Serial.println("GET request");
+              Serial.println(F("GET request"));
               iGet += 4;
               char *endFile = strstr(iGet, " ");
               int fileLen = endFile-iGet;
@@ -102,20 +110,22 @@ class WebServer : public VariableTimedAction {
 
               char *fileExtension = strrchr(sdFile, '.')+1;
 
-              Serial.print("File Extension: ");
+              Serial.print(F("File Extension: "));
               Serial.println(fileExtension);
 
-              File webpage = SD.open(sdFile);
+              SdFile webpage;
+              webpage.open(sdFile);
               time_t modTime = 0;
-              if(webpage){
-                modTime = zone->toUTC(webpage.getModificationDate());
+              if(webpage.isOpen()){
+                dir_t d;
+                webpage.dirEntry(&d);
+                modTime = zone->toUTC(FATTimeDateToUnix(d.lastWriteTime, d.lastWriteDate));
               }
               webpage.close();
               
               char *ifMod = strstr(HTTP_req, "If-Modified-Since: ");
               if(ifMod){
-                Serial.println("I've detected a cache check");
-                ifMod += strlen("If-Modified-Since: ");
+                ifMod += 19;
                 char dayName[10] = {0}, monthName[10] = {0};
                 int dayy, yearr, h, m, s, mon = 1;
                 sscanf(ifMod, "%s %d %s %d %d:%d:%d", dayName, &dayy, monthName, &yearr, &h, &m, &s);
@@ -135,18 +145,15 @@ class WebServer : public VariableTimedAction {
                 te.Month = (uint8_t) mon;
                 te.Year = (uint8_t) (yearr-1970);
                 time_t ifModTime = makeTime(te);
-                Serial.print("Requesting file younger than: ");
-                Serial.println(ifModTime);
-                Serial.println(modTime);
                 if(ifModTime >= modTime){
-                  Serial.println("Cache still good");
+                  Serial.println(F("Cache still good"));
                   client.println("HTTP/1.1 304 NOT MODIFIED");
                   client.println("");
                   client.flush();
                   client.stop();
-                  return 0;
+                  break;
                 }
-                Serial.println("File was modified recently. Sending new one");
+                Serial.println(F("File was modified recently. Sending new one"));
               }
   
               bool encode = false;
@@ -175,43 +182,63 @@ class WebServer : public VariableTimedAction {
                 strcpy(monthName, monthShortStr(month(modTime)));
                 sprintf(lastModDate, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT", dayName, day(modTime), monthName, year(modTime), hour(modTime), minute(modTime), second(modTime));
                 client.println(lastModDate);
-                Serial.print("File date: ");
+                Serial.print(F("File date: "));
                 Serial.println(lastModDate);
               }
 
-              webpage = SD.open(sdFile);
-              if(webpage){
+              webpage.open(sdFile);
+              uint32_t size = 0;
+              if(webpage.isOpen()){
                 client.print("Content-Length: ");
-                client.println(webpage.size());
+                dir_t d;
+                webpage.dirEntry(&d);
+                size = d.fileSize;
+                client.println(size);
               }
               
               client.println("Connection: Close");
               client.println();
-              if(webpage){
-                Serial.print("Sending data to client: ");
-                unsigned long size = webpage.size();
+              if(webpage.isOpen()){
+                Serial.print(F("Sending data to client: "));
                 Serial.println(size);
                 while (webpage.available() && client.connected()) {
                   char cc = webpage.read();
                   client.write(cc);
                 }
-                if(client.connected()) Serial.println("Data sent");
-                else Serial.println("Client disconnected");
+                if(client.connected()) Serial.println(F("Data sent"));
+                else Serial.println(F("Client disconnected"));
                 webpage.close();
-              }
+              }else Serial.println(F("File failed to open"));
             }else if(iPost){
-              Serial.println("POST request");
+              Serial.println(F("POST request"));
             }
-            Serial.println("\nResponse terminated");
+            Serial.println(F("\nResponse terminated"));
             client.flush();
             client.stop();
             respond = false;
           }
         }
+        if(!audio->isPlaying()) audio->pause();
         LCD::clearRow(1);
+        client.flush();
         client.stop();
       }
       count++;
       return 0;
+    }
+
+    void setPlay(bool play){
+      if(audio->isPlaying() != play) audio->pause();
+    }
+
+    static time_t FATTimeDateToUnix(uint16_t time, uint16_t date){
+      TimeElements te;
+      te.Second = FAT_SECOND(time);
+      te.Minute = FAT_MINUTE(time);
+      te.Hour = FAT_HOUR(time);
+      te.Day = FAT_DAY(date);
+      te.Month = FAT_MONTH(date);
+      te.Year = (uint8_t) (FAT_YEAR(date)-1970);
+      return makeTime(te);
     }
 };

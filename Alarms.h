@@ -2,9 +2,10 @@
 #define ALARMS_H
 
 #include <VariableTimedAction.h>
-#include <SD.h>
+#include <SdFat.h>
 #include <stdio.h>
 #include <Time.h>
+#include <string.h>
 
 typedef struct alarm{
   char *name, *note, *soundFile;
@@ -18,9 +19,9 @@ class Alarms : public VariableTimedAction {
     static Alarm **alarms;
     static int maxSize;
 
-    static void addAlarm(Alarm &alarm);
-    static void removeAlarm(Alarm &alarm);
-    static void ring(Alarm &alarm);
+    static void addAlarm(Alarm *alarm);
+    static void removeAlarm(char *name);
+    static void ring(Alarm *alarm);
     static int getEmptyIndex();
     static void resize();
 
@@ -29,12 +30,7 @@ class Alarms : public VariableTimedAction {
 
     static void checkAlarms(time_t t);
 
-    unsigned long run(){
-      time_t t = now();
-      int sec = second(t);
-      checkAlarms(t);
-      return 60000-sec*1000;
-    }
+    unsigned long run();
     
 };
 

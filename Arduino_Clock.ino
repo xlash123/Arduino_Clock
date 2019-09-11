@@ -1,9 +1,11 @@
 #include <Wire.h>
 #include <VariableTimedAction.h>
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 #include <Timezone.h>
-//#include <TMRpcm.h>
+#include <TMRpcm.h>
+#include <TM1637Display.h>
+#include <SevenSegmentTM1637.h>
 
 #include "LCD.h"
 #include "Timer.cpp"
@@ -12,12 +14,14 @@
 
 #include <TimeLib.h>
 
+SdFat SD;
+
 TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  //UTC - 4 hours
 TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   //UTC - 5 hours
 Timezone est(usEDT, usEST);
 EthernetUDP Udp;
 
-//TMRpcm audio;
+TMRpcm audio;
 
 void setup()
 {
@@ -32,31 +36,48 @@ void setup()
   bool error = false;
   if(!SD.begin(4)){
     LCD::writeString("Error:\nSD not accessible");
+    Serial.println(F("SD Error"));
     error = true;
   }
   while(error){
     delay(1);
   }
-  WebServer webServer(&est);
-  Timer timer;
+  WebServer webServer(&est, &audio);
+  SevenSegmentTM1637 sevSeg(2, 3);
+  sevSeg.begin();
+  sevSeg.setBacklight(10);
+  sevSeg.init();
+  sevSeg.setColonOn(true);
+  Timer timer(&sevSeg);
   Alarms alarms;
   Udp.begin(8888);
   setSyncProvider(&getTime);
   setSyncInterval(30*60);
-  Serial.println("No errors");
+  Serial.println(F("No errors"));
   LCD::clearRow(0);
   LCD::clearRow(1);
   timer.start(1000);
   webServer.start(1000);
   alarms.start(1000);
-//  audio.speakerPin = 11;
-//  audio.setVolume(5);
-//  audio.play("test.wav");
+  audio.speakerPin = 11;
+  audio.setVolume(5);
+  audio.play("test.wav");
 }
+
+int buttonPressed = 0;
 
 void loop()
 {
   VariableTimedAction::updateActions();
+  int buttonState = digitalRead(31);
+  if (!buttonPressed && buttonState == HIGH) {
+    buttonPressed++;
+    audio.pause();
+    Serial.println(F("Audio togged"));
+  }
+  if (buttonState == LOW) {
+    buttonPressed = 0;  
+  }
 }
 
 time_t getTime(){
@@ -79,11 +100,11 @@ time_t getTime(){
 
   //Wait for packet
   int timeout = 0, offset = millis();
-  while(!Udp.parsePacket() && timeout < 2000){
+  while(!Udp.parsePacket() && timeout < 5000){
     delay(10);
     timeout += 10;
   }
-  if(timeout >= 2000){
+  if(timeout >= 5000){
     Serial.println("No response");
     return 0;
   }
