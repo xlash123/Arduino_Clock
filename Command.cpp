@@ -1,19 +1,22 @@
 #include "Command.h"
 
-const char *Command::commands[] = {"newalarm"};
-bool (*Command::funcs[])(const char**, int) = {Command::newalarm};
+const char *Command::commands[] = {"newalarm", "getalarms"};
+bool (*Command::funcs[])(const char**, size_t, EthernetClient*) = {Command::newalarm, Command::getalarms};
 
-bool Command::run(const char *name, const char **args, int n){
-  for(int i=0; i<COM_SIZE; i++){
+bool Command::run(const char *cmd, size_t n, EthernetClient *client) {
+  return true;
+}
+
+bool Command::run(const char *name, const char **args, size_t n, EthernetClient *res) {
+  for(size_t i=0; i<COM_SIZE; i++){
     if(strcmp(name, commands[i]) == 0){
-      (*funcs[i])(args, n);
-      break;
+      return (*funcs[i])(args, n, res);
     }
   }
 }
 
-bool Command::newalarm(const char** args, int n){
-  //Name, message, time, repeat, skipInterval, sound, persistent
+//Name, message, time, repeat, skipInterval, sound, persistent
+bool Command::newalarm(const char** args, size_t n, EthernetClient *res){
   if(n < 7) return false;
   Alarm alm = *((Alarm *) malloc(sizeof(Alarm)));
   alm.name = (char *) malloc(sizeof(char)*strlen(args[0])+1);
@@ -30,6 +33,11 @@ bool Command::newalarm(const char** args, int n){
   alm.persistent = strcmp("true", args[6])==0;
 
   Alarms::addAlarm(&alm);
+
+  return true;
+}
+
+bool Command::getalarms(const char** args, size_t n, EthernetClient *res) {
 
   return true;
 }

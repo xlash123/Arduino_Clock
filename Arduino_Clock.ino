@@ -1,10 +1,11 @@
+#define SDFAT
+
 #include <Wire.h>
 #include <VariableTimedAction.h>
 #include <SPI.h>
 #include <SdFat.h>
 #include <Timezone.h>
 #include <TMRpcm.h>
-#include <TM1637Display.h>
 #include <SevenSegmentTM1637.h>
 
 #include "LCD.h"
@@ -52,6 +53,7 @@ void setup()
   Timer timer(&sevSeg);
   Alarms alarms;
   Udp.begin(8888);
+  // Syncronized the time with the time server every 30 minutes
   setSyncProvider(&getTime);
   setSyncInterval(30*60);
   Serial.println(F("No errors"));

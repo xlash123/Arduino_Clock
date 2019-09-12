@@ -6,9 +6,9 @@
 #include <Time.h>
 #include <Timezone.h>
 #include <TMRpcm.h>
-#include <MemoryFree.h>
 
 #include "LCD.h"
+#include "Command.h"
 
 class WebServer : public VariableTimedAction {
 
@@ -64,8 +64,6 @@ class WebServer : public VariableTimedAction {
       EthernetClient client = server.available();
       if(client){
         Serial.println(F("New client:\n"));
-        Serial.print(F("Free memory:"));
-        Serial.println(freeMemory());
         LCD::clearRow(1);
         LCD::writeString("Serving HTTP...", 1);
         int maxLen = client.available()+8;
@@ -147,7 +145,7 @@ class WebServer : public VariableTimedAction {
                 time_t ifModTime = makeTime(te);
                 if(ifModTime >= modTime){
                   Serial.println(F("Cache still good"));
-                  client.println("HTTP/1.1 304 NOT MODIFIED");
+                  client.println(F("HTTP/1.1 304 NOT MODIFIED"));
                   client.println("");
                   client.flush();
                   client.stop();
@@ -173,7 +171,7 @@ class WebServer : public VariableTimedAction {
               webpage.open(sdFile);
               uint32_t size = 0;
               if(webpage.isOpen()){
-                client.print("Content-Length: ");
+                client.print(F("Content-Length: "));
                 dir_t d;
                 webpage.dirEntry(&d);
                 size = d.fileSize;
@@ -194,7 +192,14 @@ class WebServer : public VariableTimedAction {
                 webpage.close();
               }else Serial.println(F("File failed to open"));
             }else if(iPost){
+              // Fill POST request
               Serial.println(F("POST request"));
+              char* body = strstr(iPost, "\r\n\r\n") + 2;
+              client.println(F("HTTP/1.1 200 OK"));
+              client.println(F("Content-Type: text/plain"));
+              client.println();
+              client.println();
+              Command::run(body, strlen(body), &client);
             }
             Serial.println(F("\nResponse terminated"));
             client.flush();

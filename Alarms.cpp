@@ -1,6 +1,7 @@
 #include "Alarms.h"
 
 int Alarms::maxSize = 5;
+time_t Alarms::lastTime = now();
 Alarm ** Alarms::alarms = new Alarm*[Alarms::maxSize];
 
 void Alarms::resize(){
@@ -54,15 +55,25 @@ void Alarms::saveAll(){
     file.write(&maxSize, sizeof(int));
     for(int i=0; i<maxSize; i++){
       void *al = alarms[i];
-      //Save the first 3 strings
-      for(int j=0; j<3; j++){  
-        char *str = (char *) (al+sizeof(char*)*j);
-        uint16_t len = strlen(str);
-        file.write(&len, sizeof(uint16_t));
-        file.write(str, len*sizeof(char));
-      }
-      file.write(al+3*sizeof(char*), sizeof(Alarm)-3*sizeof(char*));
+      saveAlarm(al);
     }
+    file.close();
+  }
+}
+
+void Alarms::saveAlarm(Alarm* al) {
+    SdFile file;
+  file.open("alarms.dat", O_WRITE);
+  if(file.isOpen()){
+    file.write(&maxSize, sizeof(int));
+    //Save the first 3 strings
+    for(int j=0; j<3; j++){  
+      char *str = (char *) (al+sizeof(char*)*j);
+      uint16_t len = strlen(str);
+      file.write(&len, sizeof(uint16_t));
+      file.write(str, len*sizeof(char));
+    }
+    file.write(al+3*sizeof(char*), sizeof(Alarm)-3*sizeof(char*));
     file.close();
   }
 }
@@ -93,19 +104,30 @@ void Alarms::readAll(){
 }
 
 void Alarms::checkAlarms(time_t t){
-  int h = hour(t);
-  int m = minute(t);
-  int sec = second(t);
+  time_t currentTime = now();
+  int day = weekday(currentTime) - 1;
   for(int i=0; i<maxSize; i++){
     Alarm alm = *alarms[i];
-    if(!alm.rung && alm.time == 60*m + 60*60*h){
-      ring(&alm);
-    }else alm.rung = false;
+    time_t alarmTime = alm.time + elapsedSecsToday(currentTime);
+    if((alm.repeat & (1 << day)) && alarmTime >= currentTime && alarmTime < lastTime){
+      if (alm.skipCount == 0) {
+        ring(&alm);
+      }
+      // If there are no more days left in the week for this alarm
+      if (!(alm.repeat & (0xFF << (day + 1)))) {
+        if (alm.skipCount == 0) {
+          alm.skipCount = alm.skipInterval;
+        } else {
+          alm.skipCount--;
+        }
+      }
+    }
   }
+  lastTime = currentTime;
 }
 
 void Alarms::ring(Alarm *alm){
-  alm->rung = true;
+  
 }
 
 unsigned long Alarms::run(){

@@ -8,16 +8,22 @@
 #include <string.h>
 
 typedef struct alarm{
-  char *name, *note, *soundFile;
-  uint8_t repeat; //Really just a byte
-  int numRepeat, skipInterval, time; //time in seconds
-  bool persistent, rung;
+  char *name, *note, *soundFile; // Note - message to display on LCD
+  uint8_t repeat; // bits 0-6 determine Sun-Sat repeat
+  // numRepeat - how many times the alarm should be repeated
+  // skipInterval - how many weekly instances of the alarm should be skipped
+  // skipCount - the current counter of how many skips are left until repeated
+  uint8_t numRepeat, skipInterval, skipCount;
+  uint32_t time; // Time of day in seconds to run alarm
+  // persistent - I forget
+  bool persistent;
 } Alarm;
 
 class Alarms : public VariableTimedAction {
   public:
     static Alarm **alarms;
     static int maxSize;
+    static time_t lastTime;
 
     static void addAlarm(Alarm *alarm);
     static void removeAlarm(char *name);
@@ -26,6 +32,7 @@ class Alarms : public VariableTimedAction {
     static void resize();
 
     static void saveAll();
+    static void saveAlarm(Alarm* al);
     static void readAll();
 
     static void checkAlarms(time_t t);
