@@ -53,7 +53,7 @@ class WebServer : public VariableTimedAction {
     }
   
     unsigned long run(){
-      if(Ethernet.maintain() && count%15 == 0){
+      if(Ethernet.maintain() && count%5 == 0){
         ip = Ethernet.localIP();
         LCD::clearRow(1);
         char *ipS = getIpString(ip);
@@ -85,7 +85,7 @@ class WebServer : public VariableTimedAction {
           }
           if(!client.available()) respond = true;
           if(respond){
-            setPlay(false);
+            audio->disable();
             Serial.println(F("\nNow responding:"));
             //Write response
             char *iGet = strstr(HTTP_req, "GET");
@@ -102,7 +102,7 @@ class WebServer : public VariableTimedAction {
 
               if(strcmp(sdFile, "/") == 0){
                 realloc(sdFile, sizeof(char)*15);
-                strcpy(sdFile, "/index.htm");
+                strcpy(sdFile, "/index.html");
               }
 
               Serial.print("File: ");
@@ -156,35 +156,19 @@ class WebServer : public VariableTimedAction {
                 Serial.println(F("File was modified recently. Sending new one"));
               }
   
-              bool encode = false;
               client.println("HTTP/1.1 200 OK");
               char *mime = (char *) malloc(sizeof(char)*40);
               strcpy(mime, "Content-Type: ");
-              if(strcmp(fileExtension, "htm")==0){
+              if(strcmp(fileExtension, "html")==0){
                 strcat(mime, "text/html");
               }else if(strcmp(fileExtension, "js")==0){
                 strcat(mime, "text/javascript");
-                encode = true;
               }else if(strcmp(fileExtension, "ico")==0){
                 strcat(mime, "image/x-icon");
               }else strcat(mime, "text/text");
               Serial.print("Mime: ");
               Serial.println(mime);
               client.println(mime);
-              if(encode){
-                client.println("Content-Encoding: gzip");
-                client.println("Cache-Control:public, max-age=60");
-                client.print("Last-Modified: ");
-
-                char lastModDate[60] = {0};
-                char dayName[4], monthName[4];
-                strcpy(dayName, dayShortStr(weekday(modTime)));
-                strcpy(monthName, monthShortStr(month(modTime)));
-                sprintf(lastModDate, "%s, %.2d %s %d %.2d:%.2d:%.2d GMT", dayName, day(modTime), monthName, year(modTime), hour(modTime), minute(modTime), second(modTime));
-                client.println(lastModDate);
-                Serial.print(F("File date: "));
-                Serial.println(lastModDate);
-              }
 
               webpage.open(sdFile);
               uint32_t size = 0;
@@ -218,17 +202,12 @@ class WebServer : public VariableTimedAction {
             respond = false;
           }
         }
-        if(!audio->isPlaying()) audio->pause();
         LCD::clearRow(1);
         client.flush();
         client.stop();
       }
       count++;
       return 0;
-    }
-
-    void setPlay(bool play){
-      if(audio->isPlaying() != play) audio->pause();
     }
 
     static time_t FATTimeDateToUnix(uint16_t time, uint16_t date){

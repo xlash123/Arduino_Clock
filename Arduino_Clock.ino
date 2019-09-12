@@ -35,6 +35,7 @@ void setup()
   digitalWrite(53, HIGH);
   bool error = false;
   if(!SD.begin(4)){
+    LCD::clear();
     LCD::writeString("Error:\nSD not accessible");
     Serial.println(F("SD Error"));
     error = true;
@@ -72,8 +73,8 @@ void loop()
   int buttonState = digitalRead(31);
   if (!buttonPressed && buttonState == HIGH) {
     buttonPressed++;
-    audio.pause();
-    Serial.println(F("Audio togged"));
+    if(audio.isPlaying()) audio.pause();
+    else audio.play("test.wav");
   }
   if (buttonState == LOW) {
     buttonPressed = 0;  
