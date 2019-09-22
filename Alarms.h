@@ -15,7 +15,7 @@ typedef struct alarm{
   // skipCount - the current counter of how many skips are left until repeated
   uint8_t numRepeat, skipInterval, skipCount;
   uint32_t time; // Time of day in seconds to run alarm
-  // persistent - I forget
+  // persistent - Alarm repeats until stopped
   bool persistent;
 } Alarm;
 

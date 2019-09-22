@@ -66,7 +66,7 @@ class WebServer : public VariableTimedAction {
         Serial.println(F("New client:\n"));
         LCD::clearRow(1);
         LCD::writeString("Serving HTTP...", 1);
-        int maxLen = client.available()+8;
+        size_t maxLen = client.available()+8;
         Serial.print("Max: ");
         Serial.println(maxLen);
         char *HTTP_req = (char *) malloc(maxLen*sizeof(char));
@@ -198,8 +198,11 @@ class WebServer : public VariableTimedAction {
               client.println(F("HTTP/1.1 200 OK"));
               client.println(F("Content-Type: text/plain"));
               client.println();
-              client.println();
-              Command::run(body, strlen(body), &client);
+              size_t cmdLen = strlen(body);
+              char* cmd = (char *)malloc(sizeof(char) * cmdLen);
+              strcpy(cmd, body);
+              Command::run(cmd, cmdLen, &client);
+              free(cmd);
             }
             Serial.println(F("\nResponse terminated"));
             client.flush();

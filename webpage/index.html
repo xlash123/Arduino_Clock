@@ -3,6 +3,7 @@
 	<head>
 		<meta content='width=device-width, initial-scale=1' name='viewport'/>	
 		<link rel="shortcut icon" href="favicon.ico">
+		<link rel="stylesheet" type="text/css" href="style.css">
 	</head>
 	<body>
 		<h1>Arduino Web Config</h1>
@@ -16,11 +17,38 @@
 		</div>
 		<div id="set-alarm">
 			<h2>Set New Alarm</h2>
-			<form id="set-time-form" method="post">
-				<input type="time" name="time"/>
-				<input type="submit"/>
+			<form id="set-time-form">
+				Name: <input id="alarm-name" type="text" name="name">
+				<br />
+				Note: <input id="alarm-msg" type="text" name="msg">
+				<br />
+				Time: <input id="alarm-time" type="time" name="time">
+				<br />
+				Days: <select id="alarm-days" name="day-select" id="day-select" form="set-time-form" multiple>
+					<option value="0">Sunday</option>
+					<option value="1">Monday</option>
+					<option value="2">Tuesday</option>
+					<option value="3">Wednesday</option>
+					<option value="4">Thursday</option>
+					<option value="5">Friday</option>
+					<option value="6">Saturday</option>
+				</select>
+				<br />
+				End Date: <input id="alarm-end-date" type="date" name="end-date">
+				<br />
+				Skip: <input id="alarm-skip" pattern="[0-9]*" type="number" name="skip">
+				<br />
+				<input id="alarm-persist" type="checkbox" name="persist"> Persist alarm
+				<br />
+				<br />
+				<input type="submit" style="margin-left: -8px;">
 			</form>
 		</div>
+		<div id="current-alarms">
+			<ul>
+			</ul>
+		</div>
+
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 		<script type="text/javascript" src="/index.js"></script>
 	</body>
