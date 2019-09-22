@@ -1,5 +1,7 @@
 #define SDFAT
 
+#include <WiFiEsp.h>
+#include <WiFiEspUdp.h>
 #include <Wire.h>
 #include <VariableTimedAction.h>
 #include <SPI.h>
@@ -20,13 +22,14 @@ SdFat SD;
 TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  //UTC - 4 hours
 TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   //UTC - 5 hours
 Timezone est(usEDT, usEST);
-EthernetUDP Udp;
+WiFiEspUDP Udp;
 
 TMRpcm audio;
 
 void setup()
 {
   Serial.begin(9600);
+  Serial1.begin(115200);
   Serial.println("Starting...");
   LiquidCrystal_I2C lcdRaw(0x27,ROWS,COLS);  // set the LCD address to 0x27 for a 16 chars and 2 line display
   LCD lcd(lcdRaw);

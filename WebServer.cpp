@@ -1,4 +1,5 @@
 #include <VariableTimedAction.h>
+#include <WiFiEsp.h>
 #include <Ethernet.h>
 #include <SPI.h>
 #include <SdFat.h>
@@ -13,7 +14,7 @@
 class WebServer : public VariableTimedAction {
 
   public:
-    EthernetServer server = EthernetServer(80);
+    WiFiEspServer server = WiFiEspServer(80);
     IPAddress ip;
 
     WebServer(Timezone *zone, TMRpcm *audio){
@@ -21,15 +22,20 @@ class WebServer : public VariableTimedAction {
       Serial.println(F("Init Ethernet w/ DHCP"));
       LCD::clearRow(1);
       LCD::writeString("Getting IP...", 1);
-      if(Ethernet.begin(mac) == 0){
-        Serial.println(F("No DHCP"));
-        if(Ethernet.hardwareStatus() == EthernetNoHardware){
-          Serial.println(F("No shield found"));
-        }else if(Ethernet.linkStatus() == LinkOFF){
-          Serial.println(F("Ethernet is unplugged"));
+      WiFi.init(&Serial1);
+      int status = WiFi.begin("MySpectrumWiFiaf-2G", "degreemarble709");
+      if (status != WL_CONNECTED) {
+        Serial.println(F("Attempting Ethernet connection"));
+        if(Ethernet.begin(mac) == 0){
+          Serial.println(F("No DHCP"));
+          if(Ethernet.hardwareStatus() == EthernetNoHardware){
+            Serial.println(F("No shield found"));
+          }else if(Ethernet.linkStatus() == LinkOFF){
+            Serial.println(F("Ethernet is unplugged"));
+          }
         }
-      }
-      ip = Ethernet.localIP();
+      } else Serial.println(F("Connected to WiFi"));
+      ip = WiFi.localIP();
       char *ipS = getIpString(ip);
       Serial.println(ipS);
       LCD::writeString(ipS, 3);
@@ -53,15 +59,15 @@ class WebServer : public VariableTimedAction {
     }
   
     unsigned long run(){
-      if(Ethernet.maintain() && count%5 == 0){
-        ip = Ethernet.localIP();
-        LCD::clearRow(1);
-        char *ipS = getIpString(ip);
-        LCD::writeString(ipS, 3);
-        free(ipS);
-        count = 0;
-      }
-      EthernetClient client = server.available();
+//      if(WiFi.maintain() && count%5 == 0){
+//        ip = WiFi.localIP();
+//        LCD::clearRow(1);
+//        char *ipS = getIpString(ip);
+//        LCD::writeString(ipS, 3);
+//        free(ipS);
+//        count = 0;
+//      }
+      WiFiEspClient client = server.available();
       if(client){
         Serial.println(F("New client:\n"));
         LCD::clearRow(1);
@@ -201,7 +207,7 @@ class WebServer : public VariableTimedAction {
               size_t cmdLen = strlen(body);
               char* cmd = (char *)malloc(sizeof(char) * cmdLen);
               strcpy(cmd, body);
-              Command::run(cmd, cmdLen, &client);
+//              Command::run(cmd, cmdLen, &client);
               free(cmd);
             }
             Serial.println(F("\nResponse terminated"));
